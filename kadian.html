@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>卡点 - 问题澄清与决策辅助</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #333;
+    }
+    
+    /* 顶部栏 - 弱存在 */
+    .header {
+      background-color: white;
+      color: #666;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: normal;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .product-name {
+      font-weight: 500;
+      color: #128c7e;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .edit-prompt-button {
+      background-color: transparent;
+      color: #666;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .edit-prompt-button:hover {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    
+    /* 引导区 - 首次进入显示 */
+    .guide-section {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    
+    .guide-card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      max-width: 600px;
+      text-align: center;
+    }
+    
+    .guide-content {
+      margin-bottom: 32px;
+    }
+    
+    .guide-content p {
+      font-size: 16px;
+      line-height: 1.8;
+      margin-bottom: 16px;
+      color: #555;
+    }
+    
+    .start-button {
+      background-color: #128c7e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .start-button:hover {
+      background-color: #075e54;
+    }
+    
+    /* 主内容区 */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    /* 输入区 - 固定在页面上方 */
+    .input-section {
+      background-color: white;
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .input-container {
+      margin-bottom: 16px;
+    }
+    
+    #message-input {
+      width: 100%;
+      min-height: 100px;
+      max-height: 200px;
+      padding: 16px;
+      border: none;
+      border-bottom: 2px solid #e0e0e0;
+      border-radius: 0;
+      resize: vertical;
+      outline: none;
+      font-size: 16px;
+      font-family: inherit;
+      background-color: transparent;
+      transition: border-color 0.3s ease;
+    }
+    
+    #message-input:focus {
+      border-bottom-color: #128c7e;
+    }
+    
+    #message-input::placeholder {
+      color: #999;
+    }
+    
+    .action-button {
+      background-color: #128c7e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .action-button:hover {
+      background-color: #075e54;
+    }
+    
+    .action-button:disabled {
+      background-color: #b0b0b0;
+      cursor: not-allowed;
+    }
+    
+    /* 思考过程区 - 核心内容 */
+    .thinking-process {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    /* 思考区块通用样式 */
+    .thinking-block {
+      background-color: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .thinking-block:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+    
+    /* 区块标题 */
+    .block-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #128c7e;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #128c7e;
+      display: inline-block;
+    }
+    
+    /* 区块内容 */
+    .block-content {
+      font-size: 16px;
+      line-height: 1.7;
+      color: #555;
+    }
+    
+    /* 拆解区块 - 目标/约束/假设分组 */
+    .analysis-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    
+    .analysis-group {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      border-left: 4px solid #128c7e;
+    }
+    
+    .analysis-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+    }
+    
+    .analysis-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .analysis-item {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #555;
+      padding-left: 16px;
+      position: relative;
+    }
+    
+    .analysis-item::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: #128c7e;
+      font-weight: bold;
+    }
+    
+    /* 建议区块 - 每条建议卡片 */
+    .recommendation-item {
+      background-color: #f0f8e8;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border-left: 4px solid #4caf50;
+      transition: all 0.3s ease;
+    }
+    
+    .recommendation-item:hover {
+      background-color: #e8f5e8;
+      transform: translateX(8px);
+    }
+    
+    .recommendation-action {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .recommendation-reason {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    /* 结束提示 */
+    .end-note {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+    
+    /* 输入中指示器 */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .typing-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #128c7e;
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+    
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    
+    /* 澄清问题样式 */
+    .clarification-question {
+      font-weight: 600;
+      color: #128c7e;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+    
+    /* 模态框样式 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 0;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 600px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      animation: modalFadeIn 0.3s ease;
+    }
+    
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .modal-header {
+      padding: 16px 20px;
+      background-color: #128c7e;
+      color: white;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    
+    .close-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    
+    .close-button:hover, .close-button:focus {
+      color: #ddd;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+    
+    #prompt-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    
+    #prompt-input:focus {
+      outline: none;
+      border-color: #128c7e;
+    }
+    
+    .modal-footer {
+      padding: 16px 20px;
+      background-color: #f5f5f5;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    
+    .save-button, .cancel-button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .save-button {
+      background-color: #128c7e;
+      color: white;
+    }
+    
+    .save-button:hover {
+      background-color: #075e54;
+    }
+    
+    .cancel-button {
+      background-color: #ddd;
+      color: #333;
+    }
+    
+    .cancel-button:hover {
+      background-color: #ccc;
+    }
+    
+    /* 语音设置样式 */
+    .modal-tabs {
+      display: flex;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .tab-button {
+      padding: 8px 16px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-button:hover {
+      color: #128c7e;
+    }
+    
+    .tab-button.active {
+      color: #128c7e;
+      border-bottom-color: #128c7e;
+      font-weight: 500;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .voice-settings {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .setting-group label {
+      font-size: 14px;
+      color: #333;
+    }
+    
+    .setting-group select,
+    .setting-group input[type="range"] {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .setting-group input[type="range"] {
+      padding: 0;
+    }
+    
+    .setting-group span {
+      font-size: 14px;
+      color: #666;
+      text-align: right;
+    }
+    
+    .voice-toggle-button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+    
+    .voice-toggle-button:hover {
+      color: #128c7e;
+    }
+    
+    .voice-toggle-button.muted {
+      color: #ccc;
+    }
+    
+    .test-voice-button {
+      background-color: #128c7e;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+    
+    .test-voice-button:hover {
+      background-color: #0f7d70;
+    }
+    
+    /* 响应式设计 - 移动端优化 */
+    @media (max-width: 768px) {
+      .guide-card {
+        padding: 30px 20px;
+      }
+      
+      .thinking-block {
+        padding: 20px;
+      }
+      
+      .input-section {
+        padding: 16px;
+      }
+      
+      .thinking-process {
+        padding: 16px;
+      }
+      
+      .block-title {
+        font-size: 18px;
+      }
+      
+      .analysis-content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+    
+    /* 修复键盘弹出问题 */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .thinking-process {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="product-name">卡点</span>
+    <div class="header-actions">
+      <button id="voice-toggle" class="voice-toggle-button">🔊</button>
+      <button id="edit-prompt-button" class="edit-prompt-button">设置</button>
+    </div>
+  </div>
+  
+  <!-- 引导区 -->
+  <div class="guide-section" id="guide-section">
+    <div class="guide-card">
+      <div class="guide-content">
+        <p>在开始之前，我不会立刻给建议。</p>
+        <p>我会先帮你把卡住的地方理清楚。</p>
+        <p>你可以直接说现在最难推进的那件事。</p>
+      </div>
+      <button id="start-button" class="start-button">开始梳理</button>
+    </div>
+  </div>
+  
+  <!-- 主内容区 -->
+  <div class="main-content" id="main-content" style="display: none;">
+    <!-- 输入区 -->
+    <div class="input-section">
+      <div class="input-container">
+        <textarea 
+          id="message-input" 
+          rows="3"
+          placeholder="请详细描述你现在卡住的问题..."
+        ></textarea>
+      </div>
+      <button id="send-button" class="action-button">开始梳理</button>
+    </div>
+    
+    <!-- 思考过程区 -->
+    <div class="thinking-process" id="thinking-process">
+      <!-- 澄清区块 -->
+      <div class="thinking-block clarification-block" id="clarification-block" style="display: none;">
+        <h3 class="block-title">当前理解</h3>
+        <div class="block-content" id="clarification-content"></div>
+      </div>
+      
+      <!-- 拆解区块 -->
+      <div class="thinking-block analysis-block" id="analysis-block" style="display: none;">
+        <h3 class="block-title">关键拆解</h3>
+        <div class="block-content" id="analysis-content">
+          <div class="analysis-group">
+            <h4 class="analysis-title">目标</h4>
+            <div class="analysis-items" id="analysis-goals"></div>
+          </div>
+          <div class="analysis-group">
+            <h4 class="analysis-title">约束</h4>
+            <div class="analysis-items" id="analysis-constraints"></div>
+          </div>
+          <div class="analysis-group">
+            <h4 class="analysis-title">隐含假设</h4>
+            <div class="analysis-items" id="analysis-assumptions"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 建议区块 -->
+      <div class="thinking-block recommendation-block" id="recommendation-block" style="display: none;">
+        <h3 class="block-title">可尝试的下一步</h3>
+        <div class="block-content" id="recommendation-content"></div>
+      </div>
+    </div>
+    
+    <!-- 结束提示 -->
+    <div class="end-note" id="end-note" style="display: none;">
+      本次梳理已完成，建议您先尝试其中一条行动，如有需要可再次使用本工具
+    </div>
+  </div>
+
+<!-- 修改Prompt模态框 -->
+  <div id="prompt-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>设置</h2>
+        <button class="close-button" id="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="tab-button active" data-tab="prompt">修改Prompt</button>
+        <button class="tab-button" data-tab="voice">语音设置</button>
+      </div>
+      
+      <div class="tab-content active" id="prompt-tab">
+        <textarea id="prompt-input" rows="15"></textarea>
+      </div>
+      
+      <div class="tab-content" id="voice-tab">
+        <div class="voice-settings">
+          <div class="setting-group">
+            <label for="voice-select">选择语音：</label>
+            <select id="voice-select"></select>
+          </div>
+          <div class="setting-group">
+            <label for="rate-slider">语速：</label>
+            <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1">
+            <span id="rate-value">1.0</span>
+          </div>
+          <div class="setting-group">
+            <label for="pitch-slider">语调：</label>
+            <input type="range" id="pitch-slider" min="0" max="2" step="0.1" value="1">
+            <span id="pitch-value">1.0</span>
+          </div>
+          <div class="setting-group">
+            <button id="test-voice" class="test-voice-button">测试语音</button>
+          </div>
+        </div>
+      </div>
+    </div>
+      <div class="modal-footer">
+        <button id="save-prompt" class="save-button">保存</button>
+        <button id="cancel-prompt" class="cancel-button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 获取DOM元素
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const editPromptButton = document.getElementById('edit-prompt-button');
+    const startButton = document.getElementById('start-button');
+    const guideSection = document.getElementById('guide-section');
+    const mainContent = document.getElementById('main-content');
+    
+    // 思考过程区块元素
+    const thinkingProcess = document.getElementById('thinking-process');
+    const clarificationBlock = document.getElementById('clarification-block');
+    const clarificationContent = document.getElementById('clarification-content');
+    const analysisBlock = document.getElementById('analysis-block');
+    const analysisContent = document.getElementById('analysis-content');
+    const recommendationBlock = document.getElementById('recommendation-block');
+    const recommendationContent = document.getElementById('recommendation-content');
+    const endNote = document.getElementById('end-note');
+    
+    // 模态框相关元素
+    const promptModal = document.getElementById('prompt-modal');
+    const promptInput = document.getElementById('prompt-input');
+    const savePromptButton = document.getElementById('save-prompt');
+    const cancelPromptButton = document.getElementById('cancel-prompt');
+    const closeModalButton = document.getElementById('close-modal');
+    
+    // 模态框标签页相关元素
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // 语音相关元素
+    const voiceToggleButton = document.getElementById('voice-toggle');
+    const voiceSelect = document.getElementById('voice-select');
+    const rateSlider = document.getElementById('rate-slider');
+    const rateValue = document.getElementById('rate-value');
+    const pitchSlider = document.getElementById('pitch-slider');
+    const pitchValue = document.getElementById('pitch-value');
+    const testVoiceButton = document.getElementById('test-voice');
+    
+    // 语音合成相关变量
+    let synth = window.speechSynthesis;
+    let voices = [];
+    let isMuted = false; // 默认开启语音
+    let currentUtterance = null;
+
+    // Kimi API配置
+    const API_KEY = 'sk-6nfHQJ0DN74Fi17hQU9KaqtEWiQPMnDNVcDs8fFAway83aHN';
+    const API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+
+    // System Prompt（从mvp.md中提取）
+    let SYSTEM_PROMPT = `你是一个名为「卡点」的问题引导型助手。 
+ 
+ 你的核心职责不是陪聊，也不是立刻给答案， 
+ 而是通过对话，帮助用户把“卡住的状态”逐步拆清， 
+ 最终给出【克制、现实、可执行】的建议。 
+ 
+ 你必须始终遵守以下原则： 
+ 
+ 【产品定位】 
+ - 这是一个“思考与决策辅助工具”，不是心理咨询，也不是闲聊机器人 
+ - 用户往往处在：卡住、犹豫、不确定，但不希望被安慰或说教 
+ - 你的语气必须冷静、尊重、不过度拟人 
+ 
+ 【对话节奏规则】 
+ 1. 前 1–2 轮：以澄清为主，不急于给建议 
+ 2. 中段：帮助用户拆解问题结构（目标 / 约束 / 假设） 
+ 3. 后段：在信息足够的前提下，给出明确但克制的建议 
+ 
+ 【提问规则】 
+ - 每一轮最多问 1–2 个关键问题 
+ - 问题必须推动“理解问题”，而不是制造新话题 
+ - 避免连续追问情绪细节 
+ - 不使用心理治疗、情绪安抚类语言 
+ 
+ 【建议规则（非常重要）】 
+ - 不给宏大建议（如“坚持”“相信自己”） 
+ - 不给绝对结论（如“你应该”“你必须”） 
+ - 建议必须满足： 
+   - 现实可行 
+   - 成本可控 
+   - 可在短期内尝试 
+ 
+ 【当给出建议时，请遵循固定结构】： 
+ 1. 先用一句话总结：你理解到的“卡点”是什么 
+ 2. 指出 1–2 个最关键的矛盾或误区 
+ 3. 给出不超过 3 条行动建议 
+ 4. 每条建议都要说明“为什么这一步值得尝试” 
+ 
+ 【语言风格约束】 
+ - 不使用 emoji 
+ - 不使用过度共情表达（如“我懂你”“抱抱”） 
+ - 不假装有情绪或人格 
+ - 表达应简洁、有边界感 
+ 
+ 如果用户的问题明显超出理性决策范围（如严重心理问题）， 
+ 你应当温和地引导用户寻求现实中的帮助，而不是继续深入。`;
+
+    // 对话历史，用于上下文记忆
+    let conversationHistory = [
+      { role: 'system', content: SYSTEM_PROMPT }
+    ];
+
+    // 引导区开始按钮事件监听
+    startButton.addEventListener('click', () => {
+      guideSection.style.display = 'none';
+      mainContent.style.display = 'flex';
+      messageInput.focus();
+    });
+
+    // 处理发送按钮点击事件
+    sendButton.addEventListener('click', sendMessage);
+
+    // 处理回车键发送消息
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // 自动调整文本域高度
+    messageInput.addEventListener('input', autoResizeTextarea);
+    
+    // 模态框事件监听器
+    editPromptButton.addEventListener('click', openPromptModal);
+    closeModalButton.addEventListener('click', closePromptModal);
+    cancelPromptButton.addEventListener('click', closePromptModal);
+    savePromptButton.addEventListener('click', savePrompt);
+    
+    // 标签页切换事件
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const tabId = button.dataset.tab;
+        
+        // 更新按钮状态
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // 更新内容显示
+        tabContents.forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+      });
+    });
+    
+    // 语音初始化
+    function initSpeechSynthesis() {
+      // 加载可用语音
+      function loadVoices() {
+        voices = synth.getVoices();
+        voiceSelect.innerHTML = '';
+        
+        // 添加调试信息
+        console.log('总共加载到的语音数量:', voices.length);
+        console.log('所有可用语音:', voices);
+        
+        // 过滤中文和日语语音
+        const filteredVoices = voices.filter(voice => 
+          voice.lang.includes('zh') || voice.name.includes('Chinese') ||
+          voice.lang.includes('ja') || voice.name.includes('Japanese')
+        );
+        
+        console.log('过滤后支持的语音数量:', filteredVoices.length);
+        console.log('过滤后的语音列表:', filteredVoices);
+        
+        // 如果没有找到中文或日语语音，显示所有语音
+        const displayVoices = filteredVoices.length > 0 ? filteredVoices : voices;
+        
+        displayVoices.forEach(voice => {
+          const option = document.createElement('option');
+          option.value = voice.name;
+          option.textContent = `${voice.name} (${voice.lang})`;
+          voiceSelect.appendChild(option);
+        });
+        
+        // 默认选择第一个语音
+        if (displayVoices.length > 0 && !voiceSelect.value) {
+          voiceSelect.value = displayVoices[0].name;
+          console.log('默认选择的语音:', displayVoices[0].name, '(', displayVoices[0].lang, ')');
+        }
+      }
+      
+      // 初始加载
+      loadVoices();
+      
+      // Chrome浏览器需要等待voiceschanged事件
+      if (synth.onvoiceschanged !== undefined) {
+        console.log('设置voiceschanged事件监听器');
+        synth.onvoiceschanged = () => {
+          console.log('触发voiceschanged事件');
+          loadVoices();
+        };
+      }
+    }
+    
+    // 语音朗读函数
+    function speakText(text) {
+      if (isMuted || !text) {
+        return;
+      }
+      
+      // 停止当前朗读
+      if (currentUtterance) {
+        synth.cancel();
+      }
+      
+      currentUtterance = new SpeechSynthesisUtterance(text);
+      
+      // 设置语音
+      const selectedVoiceName = voiceSelect.value;
+      let selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+      
+      // 如果没有找到匹配的语音，尝试重新获取语音列表（可能是Chrome延迟加载）
+      if (!selectedVoice && voices.length === 0) {
+        console.log('语音列表为空，尝试重新获取...');
+        voices = synth.getVoices();
+        selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+      }
+      
+      if (selectedVoice) {
+        currentUtterance.voice = selectedVoice;
+        // 确保设置了正确的语言
+        currentUtterance.lang = selectedVoice.lang;
+      } else {
+        // 如果没有找到语音，至少设置语言为中文（作为默认）
+        console.log('未找到指定语音，使用默认设置');
+        currentUtterance.lang = 'zh-CN';
+      }
+      
+      // 设置语速和语调
+      currentUtterance.rate = parseFloat(rateSlider.value);
+      currentUtterance.pitch = parseFloat(pitchSlider.value);
+      
+      // 输出调试信息
+      console.log('使用语音:', selectedVoice ? selectedVoice.name : '默认语音');
+      console.log('语音语言:', selectedVoice ? selectedVoice.lang : currentUtterance.lang);
+      console.log('朗读文本:', text);
+      console.log('当前语音列表状态:', voices.length, '个语音可用');
+      
+      synth.speak(currentUtterance);
+    }
+    
+    // 静音/播放切换
+    function toggleVoice() {
+      isMuted = !isMuted;
+      voiceToggleButton.textContent = isMuted ? '🔇' : '🔊';
+      voiceToggleButton.classList.toggle('muted', isMuted);
+      
+      if (isMuted && currentUtterance) {
+        synth.cancel();
+      }
+    }
+    
+    /**
+     * 测试当前选择的语音
+     */
+    function testVoice() {
+      // 根据当前语音语言选择相应的测试文本
+      const selectedVoiceName = voiceSelect.value;
+      const selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+      
+      let testText = '这是一段测试语音，你可以听到吗？';
+      
+      if (selectedVoice && (selectedVoice.lang.includes('ja') || selectedVoice.name.includes('Japanese'))) {
+        testText = 'これはテスト音声です。聞こえますか？';
+      }
+      
+      console.log('测试语音:', selectedVoice ? selectedVoice.name : '默认语音');
+      console.log('测试文本:', testText);
+      
+      speakText(testText);
+    }
+    
+    // 初始化语音
+    initSpeechSynthesis();
+    
+    // 语音控制事件监听器
+    voiceToggleButton.addEventListener('click', toggleVoice);
+    testVoiceButton.addEventListener('click', testVoice);
+    
+    // 语速和语调调整事件
+    rateSlider.addEventListener('input', () => {
+      rateValue.textContent = rateSlider.value;
+    });
+    
+    pitchSlider.addEventListener('input', () => {
+      pitchValue.textContent = pitchSlider.value;
+    });
+    
+    // 点击模态框外部关闭
+    promptModal.addEventListener('click', function(event) {
+      if (event.target === promptModal) {
+        closePromptModal();
+      }
+    });
+    
+    // ESC键关闭模态框
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && promptModal.style.display === 'block') {
+        closePromptModal();
+      }
+    });
+    
+    /**
+     * 自动调整文本域高度
+     */
+    function autoResizeTextarea() {
+      messageInput.style.height = 'auto';
+      messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
+    }
+
+    /**
+     * 发送消息
+     */
+    async function sendMessage() {
+      const userInput = messageInput.value.trim();
+      if (!userInput) {
+        return;
+      }
+
+      // 清空输入框
+      messageInput.value = '';
+      autoResizeTextarea();
+      
+      // 添加到对话历史
+      conversationHistory.push({ role: 'user', content: userInput });
+      
+      // 显示加载状态
+      sendButton.disabled = true;
+      showTypingIndicator();
+      
+      try {
+        // 调用API获取响应
+        const response = await callKimiAPI();
+        
+        // 移除加载状态
+        removeTypingIndicator();
+        
+        // 添加到对话历史
+        conversationHistory.push({ role: 'assistant', content: response });
+        
+        // 解析并显示响应为区块化内容
+        displayResponseAsBlocks(response);
+        
+      } catch (error) {
+        console.error('API调用失败:', error);
+        removeTypingIndicator();
+        // 显示错误信息
+        displayErrorMessage('抱歉，处理失败，请稍后重试');
+      } finally {
+        sendButton.disabled = false;
+      }
+    }
+
+    /**
+     * 调用Kimi API
+     * @returns {Promise<string>} API返回的响应内容
+     */
+    async function callKimiAPI() {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'moonshot-v1-8k', // 使用Kimi的模型
+          messages: conversationHistory,
+          temperature: 0.7, // 温度设置在0.6-0.8之间
+          max_tokens: 1000 // 设置合适的最大令牌数
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API错误: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    }
+    
+    /**
+     * 显示加载指示器
+     */
+    function showTypingIndicator() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'typing-indicator';
+      typingDiv.id = 'typing-indicator';
+      
+      // 创建三个打字点
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'typing-dot';
+        typingDiv.appendChild(dot);
+      }
+      
+      thinkingProcess.appendChild(typingDiv);
+      scrollToBottom();
+    }
+    
+    /**
+     * 移除加载指示器
+     */
+    function removeTypingIndicator() {
+      const typingIndicator = document.getElementById('typing-indicator');
+      if (typingIndicator && typingIndicator.parentNode) {
+        typingIndicator.parentNode.removeChild(typingIndicator);
+      }
+    }
+    
+    /**
+     * 解析并显示响应为区块化内容
+     * @param {string} response API响应内容
+     */
+    function displayResponseAsBlocks(response) {
+      // 简单的解析逻辑，根据内容特征判断区块类型
+      
+      // 清空现有区块
+      clearAllBlocks();
+      
+      // 自动朗读AI回复
+      if (!isMuted) {
+        setTimeout(() => {
+          speakText(response);
+        }, 500);
+      }
+      
+      // 根据内容判断显示哪个区块
+      if (response.includes('当前理解') || response.includes('澄清') || response.includes('确认')) {
+        // 显示澄清区块
+        clarificationBlock.style.display = 'block';
+        clarificationContent.innerHTML = response.replace(/\n/g, '<br>');
+      } else if (response.includes('关键拆解') || response.includes('目标') || response.includes('约束') || response.includes('假设')) {
+        // 显示拆解区块
+        analysisBlock.style.display = 'block';
+        analysisContent.innerHTML = response.replace(/\n/g, '<br>');
+      } else if (response.includes('可尝试的下一步') || response.includes('建议') || response.includes('行动')) {
+        // 显示建议区块
+        recommendationBlock.style.display = 'block';
+        recommendationContent.innerHTML = formatRecommendations(response);
+        // 显示结束提示
+        endNote.style.display = 'block';
+      } else {
+        // 默认显示为澄清区块
+        clarificationBlock.style.display = 'block';
+        clarificationContent.innerHTML = response.replace(/\n/g, '<br>');
+      }
+      
+      scrollToBottom();
+    }
+    
+    /**
+     * 格式化建议内容
+     * @param {string} content 建议内容
+     * @returns {string} 格式化后的HTML
+     */
+    function formatRecommendations(content) {
+      // 简单的建议格式化，实际应用中可能需要更复杂的解析
+      const lines = content.split('\n');
+      let formatted = '';
+      let inRecommendation = false;
+      
+      lines.forEach(line => {
+        if (line.trim().match(/^\d+\./) || line.trim().match(/^•/)) {
+          // 新建议开始
+          if (inRecommendation) {
+            // 关闭上一个建议
+            formatted += `</div>`;
+          }
+          // 开始新建议
+          formatted += `<div class="recommendation-item">`;
+          formatted += `<div class="recommendation-action">${line.trim()}</div>`;
+          inRecommendation = true;
+        } else if (inRecommendation && line.trim()) {
+          // 建议内容
+          formatted += `<div class="recommendation-reason">${line.trim()}</div>`;
+        }
+      });
+      
+      // 关闭最后一个建议
+      if (inRecommendation) {
+        formatted += `</div>`;
+      }
+      
+      return formatted || content.replace(/\n/g, '<br>');
+    }
+    
+    /**
+     * 显示错误信息
+     * @param {string} message 错误信息
+     */
+    function displayErrorMessage(message) {
+      // 清空现有区块
+      clearAllBlocks();
+      
+      // 显示错误信息在澄清区块
+      clarificationBlock.style.display = 'block';
+      clarificationContent.innerHTML = message;
+      
+      scrollToBottom();
+    }
+    
+    /**
+     * 清空所有区块
+     */
+    function clearAllBlocks() {
+      clarificationBlock.style.display = 'none';
+      analysisBlock.style.display = 'none';
+      recommendationBlock.style.display = 'none';
+      endNote.style.display = 'none';
+    }
+    
+    /**
+     * 滚动到底部
+     */
+    function scrollToBottom() {
+      setTimeout(() => {
+        thinkingProcess.scrollTop = thinkingProcess.scrollHeight;
+      }, 100);
+    }
+    
+    /**
+     * 打开修改Prompt的模态框
+     */
+    function openPromptModal() {
+      promptInput.value = SYSTEM_PROMPT;
+      promptModal.style.display = 'block';
+      // 聚焦到文本框
+      promptInput.focus();
+    }
+    
+    /**
+     * 关闭修改Prompt的模态框
+     */
+    function closePromptModal() {
+      promptModal.style.display = 'none';
+    }
+    
+    /**
+     * 保存修改后的Prompt
+     */
+    function savePrompt() {
+      const newPrompt = promptInput.value.trim();
+      if (newPrompt) {
+        SYSTEM_PROMPT = newPrompt;
+        closePromptModal();
+        // 更新对话历史中的system prompt
+        conversationHistory[0].content = SYSTEM_PROMPT;
+        // 显示提示信息
+        displayErrorMessage('设置已保存，让我们继续思考');
+      }
+    }
+  </script>
+  </body>
+</html>
